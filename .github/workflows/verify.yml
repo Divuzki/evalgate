@@ -10,4 +10,7 @@ jobs:
           python-version: "3.13"
       - run: |
           python -m unittest
-          python evalgate.py
+          echo "EVAL_CANDIDATE=$(cat release.txt)" >> "$GITHUB_ENV"
+      - uses: ./
+        with:
+          candidate: ${{ env.EVAL_CANDIDATE }}

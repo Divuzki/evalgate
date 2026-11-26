@@ -6,7 +6,15 @@ from statistics import mean, median
 
 def evaluate(candidate):
     docs=[json.loads(p.read_text()) for p in sorted(Path('documents').glob('*.json'))]
-    runs=[{r['id']:r for r in json.loads(Path(name+'.json').read_text())} for name in ('baseline',candidate)]
+    if not docs or len({d['id'] for d in docs})!=len(docs):
+        raise ValueError('Expected unique labeled documents')
+    runs=[]
+    for name in ('baseline',candidate):
+        records=json.loads(Path(name+'.json').read_text())
+        by_id={r['id']:r for r in records}
+        if len(by_id)!=len(records):
+            raise ValueError('Duplicate output record')
+        runs.append(by_id)
     for run in runs:
         if set(run)!={d['id'] for d in docs}:
             raise ValueError('Mismatched evaluation corpus')
@@ -35,10 +43,12 @@ if __name__=='__main__':
     print(json.dumps(report,indent=2))
     if 'GITHUB_STEP_SUMMARY' in os.environ:
         with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as log:
+            prefix=os.path.relpath(os.getcwd(),os.environ['GITHUB_WORKSPACE']).replace(os.sep,'/').strip('.')
+            prefix=(prefix+'/') if prefix else ''
             for row in report['slices']:
                 if row['status']!='pass':
                     print(row['layout'],row['field'],row['status'],file=log)
                     for doc in row['regressions']:
-                        print(f"- [{doc}](https://github.com/{os.environ['GITHUB_REPOSITORY']}/blob/{os.environ['GITHUB_SHA']}/documents/{doc}.json)",file=log)
+                        print(f"- [{doc}](https://github.com/{os.environ['GITHUB_REPOSITORY']}/blob/{os.environ['GITHUB_SHA']}/{prefix}documents/{doc}.json)",file=log)
     sys.exit(any(r['status']=='block' for r in report['slices']))
 
