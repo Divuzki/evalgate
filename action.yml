@@ -1,0 +1,20 @@
+name: Paired purchase-order release gate
+description: Compare two recorded extractor runs against a directory of labeled purchase orders.
+inputs:
+  corpus:
+    description: Relative path to the evaluation directory in the caller's checkout.
+    default: '.'
+  candidate:
+    description: Recorded candidate JSON filename without the extension.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        EVALUATION_ROOT: ${{ inputs.corpus }}
+        CANDIDATE_RUN: ${{ inputs.candidate }}
+      run: |
+        cd "$GITHUB_WORKSPACE/$EVALUATION_ROOT"
+        python "$GITHUB_ACTION_PATH/evalgate.py" "$CANDIDATE_RUN"
+
